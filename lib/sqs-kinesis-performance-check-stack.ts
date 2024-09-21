@@ -5,7 +5,10 @@ import {
     aws_ec2 as ec2,
     aws_ecs as ecs,
     aws_sqs as sqs,
+    aws_kinesis as kinesis,
+    aws_dynamodb as dynamodb,
 } from 'aws-cdk-lib';
+import { consumers } from 'stream';
 
 export class SqsKinesisPerformanceCheckStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -19,6 +22,31 @@ export class SqsKinesisPerformanceCheckStack extends cdk.Stack {
           queueName: `MyQueue.fifo`,
           fifo: true,
           contentBasedDeduplication: true,
+      });
+
+      // -----------------------------------------------
+      //  Kinesis
+      // -----------------------------------------------
+      const stream = new kinesis.CfnStream(this, `MyKinesis`, {
+          shardCount: 1,
+          name: `MyKinesis`,
+          
+      });
+
+     const stream_consumer = new kinesis.CfnStreamConsumer(
+          this,
+          "my-consumer",
+          {
+              consumerName: "DynamoTable",
+              streamArn: stream.attrArn,
+              
+          }
+        );
+
+      const dynamoTable = new dynamodb.Table(this, 'Dynamo', {
+          partitionKey: { name: 'ShardID', type: dynamodb.AttributeType.STRING },
+          tableName: 'DynamoTable',
+          deletionProtection: false,
       });
 
       // -----------------------------------------------
@@ -43,15 +71,20 @@ export class SqsKinesisPerformanceCheckStack extends cdk.Stack {
 
       // IAM Policy and Role for EC2
       const sqsSnsFullAccessPolicy = new iam.PolicyStatement({
-          effect: iam.Effect.ALLOW,
-          actions: [
-              'sns:*',
-              'sqs:*',
-          ],
-          resources: [
-              queue.queueArn,
-          ],
-      })
+        effect: iam.Effect.ALLOW,
+        actions: [
+          'sqs:*',
+          'kinesis:*',
+          'dynamodb:*',
+        ],
+        resources: [
+          queue.queueArn,
+          stream.attrArn,
+          dynamoTable.tableArn,
+          stream_consumer.attrConsumerArn,
+          `${stream.attrArn}/consumer/${stream_consumer.consumerName}`
+        ],
+      });
 
       const ec2Role = new iam.Role(this, 'MyEC2Role', {
             assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com'),
