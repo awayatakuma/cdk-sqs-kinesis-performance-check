@@ -8,7 +8,6 @@ import {
     aws_kinesis as kinesis,
     aws_dynamodb as dynamodb,
 } from 'aws-cdk-lib';
-import { consumers } from 'stream';
 
 export class SqsKinesisPerformanceCheckStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -46,7 +45,7 @@ export class SqsKinesisPerformanceCheckStack extends cdk.Stack {
       const dynamoTable = new dynamodb.Table(this, 'Dynamo', {
           partitionKey: { name: 'ShardID', type: dynamodb.AttributeType.STRING },
           tableName: 'DynamoTable',
-          deletionProtection: false,
+          removalPolicy: cdk.RemovalPolicy.DESTROY,
       });
 
       // -----------------------------------------------

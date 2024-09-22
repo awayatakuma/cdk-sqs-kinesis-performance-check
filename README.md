@@ -1,8 +1,9 @@
-# Welcome to your CDK TypeScript project
+# cdk-sqs-kinesis-performance-check
 
-This is a blank project for CDK development with TypeScript.
+## Prerequirements
 
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
+This application uses ssh and its key when you access to EC2 instances. Please prepare these keys by yourself and modify the key name in `keyName` parameter in `ec2.instance`.
+
 
 ## Useful commands
 
